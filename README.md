@@ -1,0 +1,53 @@
+# katex-native
+
+Native layout for [katex-rs](https://github.com/katex-rs/katex-rs), the Rust port of KaTeX.
+
+katex-rs produces KaTeX's HTML. Its spans already carry the vertical layout, spacing and stretchy shapes, but a browser supplies the rest from KaTeX's CSS: horizontal flow, font choice and sizes. This crate applies those CSS rules with KaTeX's fonts and returns a display list that any renderer can draw. The list contains text runs, rectangles, filled paths and lines.
+
+```rust
+let ctx = katex::KatexContext::default();
+let layout = katex_native::layout(&ctx, r"\int_0^1 x^2\,dx = \frac{1}{3}", true)?;
+for item in &layout.items {
+    // Item::Text { x, y, text, font, size, color }, Item::Rect, Item::Path, Item::Line
+}
+```
+
+Dimensions are in ems of the formula's font size, with the origin at the left end of the baseline and y pointing down. Each text run names a KaTeX font face. `FONTS` embeds the 20 KaTeX font files (about 0.5 MB). `svg::to_svg` writes a layout as SVG. With the `raster` feature, `raster::rasterize` renders it to RGBA through resvg.
+
+## Registering the fonts
+
+Every KaTeX font file declares itself upright and regular weight; bold files at least set weight 700. A font system that reads those flags cannot tell `KaTeX_Main` Regular from `KaTeX_Main` Italic. Browsers are unaffected because KaTeX's CSS declares each face's style in `@font-face`. Register each `FontFile` under its `font` field's family, weight and style, as `raster::svg_options` does for resvg.
+
+## Fidelity
+
+Measured against KaTeX's own screenshot tests: the 128 cases from KaTeX's `test/screenshotter/ss_data.yaml` at commit `8000fbd4`, rendered at the screenshotter's 77.44 px per em. For each case, the score is the share of ink within 2 px of the other image's ink, taking the worse direction:
+
+| Score | Cases (of 120 scored) |
+|---|---:|
+| ≥ 0.99 | 106 |
+| ≥ 0.95 | 109 |
+| ≥ 0.90 | 110 |
+
+The eight unscored cases are the three katex-rs 0.3 can't parse (`\mapsfrom`, `\reflectbox`, and a deliberately invalid case), and five whose screenshots include text or styles around the math.
+
+Known gaps:
+- Equation numbers from `equation`, `gather` and `align`, which KaTeX generates through CSS counters.
+- Layouts that depend on the container's width: tags and numbers at the right edge, and automatic line breaks.
+- `\\` outside environments: line spacing is close but not exact.
+- `\includegraphics`, which is laid out but not drawn.
+- Characters missing from KaTeX's fonts, for example CJK: their width is estimated.
+
+Layout, including katex-rs's parsing, takes about 0.1 ms per formula at the median and under 1 ms at worst (release build, Apple M2 Pro).
+
+To reproduce, with a JSON list of `{name, tex, display, options}` made from `ss_data.yaml`:
+
+```sh
+cargo build --release --features raster --examples
+target/release/examples/corpus cases.json /tmp/native
+python3 -I tools/fetch_screenshots.py cases.json /tmp/katex-shots
+python3 -I tools/compare.py cases.json /tmp/katex-shots /tmp/native /tmp/compare
+```
+
+## License
+
+MIT. KaTeX's fonts in `fonts/` are under the SIL Open Font License 1.1 (`fonts/OFL.txt`), with Reserved Font Names `KaTeX_*`.

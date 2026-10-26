@@ -1,0 +1,29 @@
+[package]
+name = "katex-native"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "Native layout for katex-rs: KaTeX's CSS applied with its font metrics, as a display list any renderer can draw."
+license = "MIT"
+keywords = ["katex", "latex", "math", "typesetting"]
+categories = ["text-processing", "rendering"]
+
+[features]
+# Rasterizes layouts with resvg.
+raster = ["dep:resvg"]
+
+[dependencies]
+katex-rs = "0.3.0"
+resvg = { version = "0.45", default-features = false, features = ["text"], optional = true }
+
+[dev-dependencies]
+resvg = "0.45"
+serde_json = "1"
+
+[[example]]
+name = "render"
+required-features = ["raster"]
+
+[[example]]
+name = "corpus"
+required-features = ["raster"]
