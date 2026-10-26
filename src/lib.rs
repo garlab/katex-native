@@ -20,6 +20,8 @@ pub mod svg;
 
 pub use color::Color;
 pub use fonts::{FONTS, FontFile};
+/// The katex-rs version this crate lays out, for its context and settings.
+pub use katex;
 pub use path::PathCommand;
 
 /// A laid-out formula.
