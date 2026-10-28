@@ -47,7 +47,12 @@ fn main() {
                 continue;
             }
         };
-        let svg = katex_native::svg::to_svg(&layout, px_per_em, "black");
+        // Display math fills the screenshotter's 1008 px wide page.
+        let svg = if display {
+            katex_native::svg::to_svg_display(&layout, px_per_em, "black", 1008. / px_per_em)
+        } else {
+            katex_native::svg::to_svg(&layout, px_per_em, "black")
+        };
         let tree = usvg::Tree::from_str(&svg, options).expect("valid SVG");
         let size = tree.size().to_int_size();
         let mut pixmap =

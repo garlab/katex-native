@@ -21,6 +21,9 @@ pub struct Raster {
 
 /// Renders `layout` at `px_per_em` pixels per em, in `color` wherever the
 /// formula doesn't set one. `None` if the result would be empty.
+///
+/// The tag isn't drawn: display math puts it against the right edge of the
+/// container, so rasterize `layout.tag` separately and place it there.
 pub fn rasterize(layout: &Layout, px_per_em: f64, color: Color) -> Option<Raster> {
     let css = format!(
         "rgba({},{},{},{})",
@@ -29,18 +32,23 @@ pub fn rasterize(layout: &Layout, px_per_em: f64, color: Color) -> Option<Raster
         color.b,
         f64::from(color.a) / 255.
     );
-    let source = svg::to_svg(layout, px_per_em, &css);
+    let source = if layout.tag.is_some() {
+        let body = Layout {
+            tag: None,
+            ..layout.clone()
+        };
+        svg::to_svg(&body, px_per_em, &css)
+    } else {
+        svg::to_svg(layout, px_per_em, &css)
+    };
     let tree = usvg::Tree::from_str(&source, svg_options()).ok()?;
     let size = tree.size().to_int_size();
     let mut pixmap = tiny_skia::Pixmap::new(size.width(), size.height())?;
     resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
-    let top = layout
-        .height
-        .max(layout.tag.as_ref().map_or(0., |tag| tag.height));
     Some(Raster {
         width: pixmap.width(),
         height: pixmap.height(),
-        baseline: top * px_per_em,
+        baseline: layout.height * px_per_em,
         rgba: pixmap
             .pixels()
             .iter()

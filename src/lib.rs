@@ -36,6 +36,9 @@ pub struct Layout {
     /// An equation tag such as `(1)`, which display math puts at the right
     /// edge of the available width.
     pub tag: Option<Box<Layout>>,
+    /// How many automatic equation numbers this formula used (`equation`,
+    /// `gather`, `align` and the like), to continue from in the next one.
+    pub equation_numbers: u32,
 }
 
 /// Something to draw.
@@ -160,12 +163,23 @@ pub fn layout(ctx: &katex::KatexContext, tex: &str, display: bool) -> Result<Lay
 }
 
 /// [`layout`] with any katex-rs settings: macros, `\tag` placement, trust and
-/// so on.
+/// so on. Automatic equation numbers start at 1.
 pub fn layout_with(
     ctx: &katex::KatexContext,
     tex: &str,
     settings: &katex::Settings,
 ) -> Result<Layout, Error> {
+    layout_numbered(ctx, tex, settings, 1)
+}
+
+/// [`layout_with`], numbering equations from `first_number`, as a page
+/// numbers them across formulas.
+pub fn layout_numbered(
+    ctx: &katex::KatexContext,
+    tex: &str,
+    settings: &katex::Settings,
+    first_number: u32,
+) -> Result<Layout, Error> {
     let tree = katex::render_to_html_tree(ctx, tex, settings)?;
-    engine::layout(ctx, &tree, settings.display_mode)
+    engine::layout(ctx, &tree, settings.display_mode, first_number)
 }

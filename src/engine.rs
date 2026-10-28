@@ -6,6 +6,8 @@
 //! where each row's baseline goes. Each node becomes a [`Boxed`]: its items
 //! relative to the left end of its baseline, with y pointing down.
 
+use std::cell::Cell;
+
 use katex::{
     ClassList, KatexContext,
     dom_tree::{DomSpan, HtmlDomNode, LineNode, SvgChildNode, SvgNode, SymbolNode},
@@ -19,8 +21,16 @@ use crate::{Color, Error, Family, Font, Item, Layout, Rect, font_data, path};
 /// KaTeX's font sizes `size1` to `size11`, relative to the default `size6`.
 const SIZES: [f64; 11] = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.2, 1.44, 1.728, 2.074, 2.488];
 
-pub(crate) fn layout(katex: &KatexContext, tree: &DomSpan, display: bool) -> Result<Layout, Error> {
-    let engine = Engine { katex };
+pub(crate) fn layout(
+    katex: &KatexContext,
+    tree: &DomSpan,
+    display: bool,
+    first_number: u32,
+) -> Result<Layout, Error> {
+    let engine = Engine {
+        katex,
+        next_number: Cell::new(first_number),
+    };
     let ctx = Ctx {
         font: Font::default(),
         scale: 1.,
@@ -48,6 +58,7 @@ pub(crate) fn layout(katex: &KatexContext, tree: &DomSpan, display: bool) -> Res
     }
     let mut layout = stack_lines(lines, ctx.align).into_layout();
     layout.tag = tag;
+    layout.equation_numbers = engine.next_number.get() - first_number;
     Ok(layout)
 }
 
@@ -340,6 +351,7 @@ impl Boxed {
             depth: self.depth,
             items: self.items,
             tag: None,
+            equation_numbers: 0,
         }
     }
 }
@@ -357,6 +369,9 @@ const FILLS: &[&str] = &[
 
 struct Engine<'a> {
     katex: &'a KatexContext,
+    /// The next automatic equation number. Rows laid out twice (those as
+    /// wide as their list) never hold numbers, so each is counted once.
+    next_number: Cell<u32>,
 }
 
 impl Engine<'_> {
@@ -476,6 +491,33 @@ impl Engine<'_> {
             return Ok(Boxed::default());
         }
         let ctx = ctx.apply(classes, style);
+        if classes.contains("eqn-num") {
+            // `.eqn-num::before { content: "(" counter(katexEqnNo) ")" }`
+            let number = self.next_number.get();
+            self.next_number.set(number + 1);
+            let text = format!("({number})");
+            let width = text
+                .chars()
+                .map(|ch| self.advance(ch, ctx.font))
+                .sum::<f64>()
+                * ctx.scale;
+            let content = Boxed {
+                width,
+                // The parentheses' extent in KaTeX_Main.
+                height: 0.75 * ctx.scale,
+                depth: 0.25 * ctx.scale,
+                items: vec![Item::Text {
+                    x: 0.,
+                    y: 0.,
+                    text,
+                    font: ctx.font,
+                    size: ctx.scale,
+                    color: ctx.color,
+                }],
+                fills: false,
+            };
+            return Ok(decorate(content, classes, style, ctx, 0.));
+        }
         if classes.contains("vlist-t") {
             return Ok(decorate(self.vlist(span, ctx)?, classes, style, ctx, 0.));
         }

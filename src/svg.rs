@@ -10,7 +10,30 @@ use crate::{Color, Item, Layout, PathCommand};
 /// after a 1 em gap.
 pub fn to_svg(layout: &Layout, px_per_em: f64, color: &str) -> String {
     let gap = 1.;
-    let tag_width = layout.tag.as_ref().map_or(0., |tag| gap + tag.width);
+    let width = layout.width + layout.tag.as_ref().map_or(0., |tag| gap + tag.width);
+    write_svg(layout, px_per_em, color, width, 0., layout.width + gap)
+}
+
+/// [`to_svg`] laid out as display math in a block `width` ems wide: the
+/// formula centered and its tag against the right edge, as KaTeX's CSS does.
+/// The block widens to fit both if needed.
+pub fn to_svg_display(layout: &Layout, px_per_em: f64, color: &str, width: f64) -> String {
+    let tag_width = layout.tag.as_ref().map_or(0., |tag| tag.width);
+    let width = width.max(layout.width + tag_width);
+    let body = (width - layout.width) / 2.;
+    write_svg(layout, px_per_em, color, width, body, width - tag_width)
+}
+
+/// Writes `layout` with the formula at `body` and its tag at `tag` ems from
+/// the left, in an SVG `width` ems wide.
+fn write_svg(
+    layout: &Layout,
+    px_per_em: f64,
+    color: &str,
+    width: f64,
+    body: f64,
+    tag: f64,
+) -> String {
     let height = layout
         .height
         .max(layout.tag.as_ref().map_or(0., |tag| tag.height));
@@ -20,18 +43,17 @@ pub fn to_svg(layout: &Layout, px_per_em: f64, color: &str) -> String {
     let mut svg = String::new();
     write!(
         svg,
-        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 {y} {vw} {vh}">"#,
-        w = (layout.width + tag_width) * px_per_em,
+        r#"<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 {y} {width} {vh}">"#,
+        w = width * px_per_em,
         h = (height + depth) * px_per_em,
         y = -height,
-        vw = layout.width + tag_width,
         vh = height + depth,
     )
     .ok();
     let mut clips = 0;
-    write_items(&mut svg, &layout.items, 0., color, &mut clips);
-    if let Some(tag) = &layout.tag {
-        write_items(&mut svg, &tag.items, layout.width + gap, color, &mut clips);
+    write_items(&mut svg, &layout.items, body, color, &mut clips);
+    if let Some(tag_layout) = &layout.tag {
+        write_items(&mut svg, &tag_layout.items, tag, color, &mut clips);
     }
     svg.push_str("</svg>");
     svg

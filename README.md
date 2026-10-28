@@ -12,7 +12,7 @@ for item in &layout.items {
 }
 ```
 
-Dimensions are in ems of the formula's font size, with the origin at the left end of the baseline and y pointing down. Each text run names a KaTeX font face. `FONTS` embeds the 20 KaTeX font files (about 0.5 MB). `svg::to_svg` writes a layout as SVG. With the `raster` feature, `raster::rasterize` renders it to RGBA through resvg.
+Dimensions are in ems of the formula's font size, with the origin at the left end of the baseline and y pointing down. A tag or equation numbers come separately in `Layout::tag`, for the renderer to put against the right edge of the container. `layout_numbered` continues automatic equation numbers from an earlier formula, and `Layout::equation_numbers` says how many a formula used. Each text run names a KaTeX font face. `FONTS` embeds the 20 KaTeX font files (about 0.5 MB). `svg::to_svg` writes a layout as SVG. With the `raster` feature, `raster::rasterize` renders it to RGBA through resvg.
 
 ## Registering the fonts
 
@@ -24,15 +24,17 @@ Measured against KaTeX's own screenshot tests: the 128 cases from KaTeX's `test/
 
 | Score | Cases (of 120 scored) |
 |---|---:|
-| ≥ 0.99 | 106 |
-| ≥ 0.95 | 109 |
-| ≥ 0.90 | 110 |
+| ≥ 0.99 | 109 |
+| ≥ 0.95 | 112 |
+| ≥ 0.90 | 114 |
 
 The eight unscored cases are the three katex-rs 0.3 can't parse (`\mapsfrom`, `\reflectbox`, and a deliberately invalid case), and five whose screenshots include text or styles around the math.
 
+Display cases are laid out with `svg::to_svg_display` at the screenshotter's 1008 px page width, which puts tags and equation numbers at the right edge as KaTeX does. `Align` scores 0.92 because KaTeX 0.18 drops an empty last row that the older screenshot still numbers.
+
 Known gaps:
-- Equation numbers from `equation`, `gather` and `align`, which KaTeX generates through CSS counters.
-- Layouts that depend on the container's width: tags and numbers at the right edge, and automatic line breaks.
+- Commutative diagrams (`CD`).
+- Automatic line breaks, which depend on the container's width.
 - `\\` outside environments: line spacing is close but not exact.
 - `\includegraphics`, which is laid out but not drawn.
 - Characters missing from KaTeX's fonts, for example CJK: their width is estimated.
