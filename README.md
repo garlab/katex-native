@@ -45,14 +45,24 @@ Known gaps:
 
 Layout, including katex-rs's parsing, takes about 0.1 ms per formula at the median and under 1 ms at worst (release build, Apple M2 Pro).
 
-To reproduce, with a JSON list of `{name, tex, display, options}` made from `ss_data.yaml`:
+To reproduce, with the cases from `ss_data.yaml` converted to JSON in `tests/katex/cases.json`:
 
 ```sh
 cargo build --release --features raster --examples
-target/release/examples/corpus cases.json /tmp/native
-python3 -I tools/fetch_screenshots.py cases.json /tmp/katex-shots
-python3 -I tools/compare.py cases.json /tmp/katex-shots /tmp/native /tmp/compare
+target/release/examples/corpus tests/katex/cases.json /tmp/native
+python3 -I tools/fetch_screenshots.py tests/katex/cases.json /tmp/katex-shots
+python3 -I tools/compare.py tests/katex/cases.json /tmp/katex-shots /tmp/native /tmp/compare
 ```
+
+`tools/ss_data_to_json.rb` makes `tests/katex/cases.json`. To take the cases from another KaTeX commit, convert its `ss_data.yaml`, then regenerate `tests/katex/layouts.txt`, the layouts that `cargo test` compares against:
+
+```sh
+curl -sSfLo /tmp/ss_data.yaml https://raw.githubusercontent.com/KaTeX/KaTeX/<commit>/test/screenshotter/ss_data.yaml
+ruby tools/ss_data_to_json.rb /tmp/ss_data.yaml tests/katex/cases.json
+UPDATE_LAYOUTS=1 cargo test --test katex_corpus
+```
+
+Then replace `8000fbd4` wherever it appears (`git grep 8000fbd4`), including `fetch_screenshots.py`'s default commit, and measure the scores again.
 
 ## License
 

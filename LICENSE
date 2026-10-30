@@ -23,7 +23,9 @@ SOFTWARE.
 ---
 
 src/engine.rs applies rules translated from KaTeX's stylesheet (katex.css
-from KaTeX 0.18.5), which is distributed under this license:
+from KaTeX 0.18.5), and tests/katex/cases.json is KaTeX's screenshot test data
+(test/screenshotter/ss_data.yaml at commit 8000fbd4) converted to JSON. Both
+are distributed under this license:
 
 The MIT License (MIT)
 
