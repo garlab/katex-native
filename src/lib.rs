@@ -43,6 +43,7 @@ pub struct Layout {
 
 /// Something to draw.
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum Item {
     /// Text whose baseline starts at (`x`, `y`), `size` ems tall.
     Text {
@@ -131,6 +132,7 @@ impl Family {
 }
 
 #[derive(Debug)]
+#[non_exhaustive]
 pub enum Error {
     /// katex-rs rejected the TeX.
     Parse(katex::ParseError),

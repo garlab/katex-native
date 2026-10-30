@@ -4,9 +4,14 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
 description = "Native layout for katex-rs: KaTeX's CSS applied with its font metrics, as a display list any renderer can draw."
-license = "MIT"
+# The embedded KaTeX fonts are OFL-1.1.
+license = "MIT AND OFL-1.1"
+repository = "https://github.com/garlab/katex-native"
 keywords = ["katex", "latex", "math", "typesetting"]
 categories = ["text-processing", "rendering"]
+
+[package.metadata.docs.rs]
+all-features = true
 
 [features]
 # Rasterizes layouts with resvg.

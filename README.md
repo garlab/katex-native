@@ -5,7 +5,9 @@ Native layout for [katex-rs](https://github.com/katex-rs/katex-rs), the Rust por
 katex-rs produces KaTeX's HTML. Its spans already carry the vertical layout, spacing and stretchy shapes, but a browser supplies the rest from KaTeX's CSS: horizontal flow, font choice and sizes. This crate applies those CSS rules with KaTeX's fonts and returns a display list that any renderer can draw. The list contains text runs, rectangles, filled paths and lines.
 
 ```rust
-let ctx = katex::KatexContext::default();
+use katex_native::katex::KatexContext;
+
+let ctx = KatexContext::default();
 let layout = katex_native::layout(&ctx, r"\int_0^1 x^2\,dx = \frac{1}{3}", true)?;
 for item in &layout.items {
     // Item::Text { x, y, text, font, size, color }, Item::Rect, Item::Path, Item::Line
@@ -13,6 +15,8 @@ for item in &layout.items {
 ```
 
 Dimensions are in ems of the formula's font size, with the origin at the left end of the baseline and y pointing down. A tag or equation numbers come separately in `Layout::tag`, for the renderer to put against the right edge of the container. `layout_numbered` continues automatic equation numbers from an earlier formula, and `Layout::equation_numbers` says how many a formula used. Each text run names a KaTeX font face. `FONTS` embeds the 20 KaTeX font files (about 0.5 MB). `svg::to_svg` writes a layout as SVG. With the `raster` feature, `raster::rasterize` renders it to RGBA through resvg.
+
+katex-native 0.1 uses katex-rs 0.3 and re-exports it as `katex_native::katex`, so the context and settings types you pass in always match. Moving to a katex-rs release that changes those types is a breaking release of this crate.
 
 ## Registering the fonts
 
@@ -52,4 +56,4 @@ python3 -I tools/compare.py cases.json /tmp/katex-shots /tmp/native /tmp/compare
 
 ## License
 
-MIT. KaTeX's fonts in `fonts/` are under the SIL Open Font License 1.1 (`fonts/OFL.txt`), with Reserved Font Names `KaTeX_*`.
+MIT. `src/engine.rs` translates KaTeX's stylesheet, which is MIT-licensed by Khan Academy and other contributors; `LICENSE` includes its notice. KaTeX's fonts in `fonts/` are under the SIL Open Font License 1.1 (`fonts/OFL.txt`), with Reserved Font Names `KaTeX_*`. The library embeds them, so programs that use it distribute them.
