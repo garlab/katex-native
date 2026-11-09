@@ -1,5 +1,7 @@
 # katex-native
 
+[crates.io](https://crates.io/crates/katex-native) · [API documentation](https://docs.rs/katex-native)
+
 Native layout for [katex-rs](https://github.com/katex-rs/katex-rs), the Rust port of KaTeX.
 
 katex-rs produces KaTeX's HTML. Its spans already carry the vertical layout, spacing and stretchy shapes, but a browser supplies the rest from KaTeX's CSS: horizontal flow, font choice and sizes. This crate applies those CSS rules with KaTeX's fonts and returns a display list that any renderer can draw. The list contains text runs, rectangles, filled paths and lines.
@@ -16,7 +18,14 @@ for item in &layout.items {
 
 Dimensions are in ems of the formula's font size, with the origin at the left end of the baseline and y pointing down. A tag or equation numbers come separately in `Layout::tag`, for the renderer to put against the right edge of the container. `layout_numbered` continues automatic equation numbers from an earlier formula, and `Layout::equation_numbers` says how many a formula used. Each text run names a KaTeX font face. `FONTS` embeds the 20 KaTeX font files (about 0.5 MB). `svg::to_svg` writes a layout as SVG. With the `raster` feature, `raster::rasterize` renders it to RGBA through resvg.
 
-katex-native 0.1 uses katex-rs 0.3 and re-exports it as `katex_native::katex`, so the context and settings types you pass in always match. Moving to a katex-rs release that changes those types is a breaking release of this crate.
+## Installation
+
+```sh
+cargo add katex-native                    # layout and SVG
+cargo add katex-native --features raster  # also RGBA rasters through resvg
+```
+
+Rust 1.88 or newer. katex-native 0.1 uses katex-rs 0.3 and re-exports it as `katex_native::katex`, so the context and settings types you pass in always match. Moving to a katex-rs release that changes those types is a breaking release of this crate.
 
 ## Registering the fonts
 
@@ -45,25 +54,10 @@ Known gaps:
 
 Layout, including katex-rs's parsing, takes about 0.1 ms per formula at the median and under 1 ms at worst (release build, Apple M2 Pro).
 
-To reproduce, with the cases from `ss_data.yaml` converted to JSON in `tests/katex/cases.json`:
-
-```sh
-cargo build --release --features raster --examples
-target/release/examples/corpus tests/katex/cases.json /tmp/native
-python3 -I tools/fetch_screenshots.py tests/katex/cases.json /tmp/katex-shots
-python3 -I tools/compare.py tests/katex/cases.json /tmp/katex-shots /tmp/native /tmp/compare
-```
-
-`tools/ss_data_to_json.rb` makes `tests/katex/cases.json`. To take the cases from another KaTeX commit, convert its `ss_data.yaml`, then regenerate `tests/katex/layouts.txt`, the layouts that `cargo test` compares against:
-
-```sh
-curl -sSfLo /tmp/ss_data.yaml https://raw.githubusercontent.com/KaTeX/KaTeX/<commit>/test/screenshotter/ss_data.yaml
-ruby tools/ss_data_to_json.rb /tmp/ss_data.yaml tests/katex/cases.json
-UPDATE_LAYOUTS=1 cargo test --test katex_corpus
-```
-
-Then replace `8000fbd4` wherever it appears (`git grep 8000fbd4`), including `fetch_screenshots.py`'s default commit, and measure the scores again.
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how to reproduce these scores.
 
 ## License
 
 MIT. `src/engine.rs` translates KaTeX's stylesheet, which is MIT-licensed by Khan Academy and other contributors; `LICENSE` includes its notice. KaTeX's fonts in `fonts/` are under the SIL Open Font License 1.1 (`fonts/OFL.txt`), with Reserved Font Names `KaTeX_*`. The library embeds them, so programs that use it distribute them.
+
+To work on the crate, see [CONTRIBUTING.md](CONTRIBUTING.md).
